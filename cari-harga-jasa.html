@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cari Harga Jasa Service</title>
+<style>
+:root{color-scheme:light dark;--bg:#f6f7f9;--card:#ffffff;--text:#1d2330;--muted:#6b7280;--line:#e5e7eb;--accent:#2563eb}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1218;--card:#181c25;--text:#e7e9ee;--muted:#9aa3b2;--line:#2a3140;--accent:#60a5fa}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+h1{font-size:20px;margin:0 0 12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding-bottom:10px;z-index:2}
+input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text)}
+input{flex:2 1 240px}
+select{flex:1 1 200px}
+.info{color:var(--muted);font-size:13px;margin:6px 2px 10px}
+.wrap{overflow:auto;max-height:70vh;background:var(--card);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:14px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);background:var(--card);position:sticky;top:0;z-index:1}
+td.r,th.r{text-align:right}
+.desc{white-space:normal;min-width:220px}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:rgba(37,99,235,.08)}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600;color:var(--accent)}
+.price{font-weight:600}
+.none{color:var(--muted)}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<h1>Cari Harga Jasa Service</h1>
+<div class="bar">
+  <input id="q" type="search" placeholder="Cari kode, nama jasa, atau motor..." autocomplete="off">
+  <select id="motor"></select>
+</div>
+<div class="info" id="info"></div>
+<div class="wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const M = ["ZIP","Liberty 100","Liberty 125-150","LX 125 CARB","Medley","LX-S 150 2V","LX-S-LXV 150 3V","LX 125","S125","SPRINT - PRIMAVERA","SPRINT - PRIMAVERA (2)","GTS 150 3V","GTS 150 4V IGET","GTS 250 & 300"];
+const u = n => Array(14).fill(n);
+const N = null;
+
+// Harga dalam ribuan rupiah (40 = Rp 40.000). null = tidak ada harga untuk motor tsb.
+const D = [
+  ["H101 JCKR1","Jasa Cek Kelistrikan Dasar", u(40)],
+  ["H101 JCKR","Jasa Cek Kelistrikan Ringan", [75,75,75,75,75,75,75,75,75,75,75,75,75,100]],
+  ["H101 JCKS","Jasa Cek Kelistrikan Sedang", [150,150,200,200,200,200,200,200,200,200,200,200,200,200]],
+  ["H101 JCKB","Jasa Cek Kelistrikan Berat", [250,250,300,300,300,300,300,300,300,300,300,300,300,400]],
+  ["H101 JCKB1","Jasa Cek Kelistrikan Khusus", [350,350,450,450,450,450,450,450,450,450,450,450,450,600]],
+  ["H101 JCAB","Jasa Charge Accu", u(15)],
+  ["H101 GKBS","Jasa Ganti Kabel Body Set", [150,150,250,250,250,250,250,250,250,250,250,250,250,300]],
+  ["H101 GMS","Jasa Ganti Motor Starter", [95,95,125,125,N,125,125,125,125,125,125,125,N,200]],
+  ["H101 JPMS","Jasa Perbaikan Motor Starter", [125,125,150,150,N,150,150,150,150,150,150,150,150,230]],
+  ["H101 GCDI","Jasa Ganti CDI", [75,75,N,200,N,N,N,N,N,N,N,N,N,N]],
+  ["H101 GECU","Jasa Ganti ECU", [N,N,N,N,300,270,270,270,270,270,270,270,270,320]],
+  ["H101 JUP0","Jasa Upgrade ECU", [N,N,150,N,150,150,150,150,150,150,150,150,150,200]],
+  ["H101 JPKK","Jasa Program Kunci Kontak", [N,N,50,50,50,50,50,50,50,50,50,50,50,50]],
+  ["H101 PADS","Jasa Cek Pads", [N,N,180,N,180,180,180,180,180,180,180,180,180,200]],
+  ["H101 GSR","Jasa Ganti Switch Rem", u(30)],
+  ["H101 JGSK","Jasa Ganti Saklar", [30,30,30,30,30,30,30,30,30,75,75,50,50,50]],
+  ["J101 PHSS","Jasa Piaggio Home Service 01", u(75)],
+  ["J101 PHSD","Jasa Piaggio Home Service 02", u(125)],
+  ["J101 PHSM","Jasa Piaggio Home Service 03", u(150)],
+  ["J101 PHSJ","Jasa Piaggio Home Service 04", u(200)],
+  ["J101 PHSP","Jasa Piaggio Home Service 04 (P)", u(250)],
+  ["J102 AU05","Jasa Antar Unit Kendaraan 05", u(50)],
+  ["J102 AU10","Jasa Antar Unit Kendaraan 10", u(100)],
+  ["J102 AU15","Jasa Antar Unit Kendaraan 15", u(125)],
+  ["J102 AU20","Jasa Antar Unit Kendaraan 20", u(175)],
+  ["J102 AU25","Jasa Antar Unit Kendaraan 25", u(225)],
+  ["J103 TU05","Jasa Tarik Unit 05", u(50)],
+  ["J103 TU10","Jasa Tarik Unit 10", u(100)],
+  ["J103 TU15","Jasa Tarik Unit 15", u(125)],
+  ["J103 TU20","Jasa Tarik Unit 20", u(175)],
+  ["J103 TU25","Jasa Tarik Unit 25", u(225)]
+];
+
+const fmt = v => v === null ? "—" : "Rp " + (v * 1000).toLocaleString("id-ID");
+const $ = id => document.getElementById(id);
+
+// isi dropdown motor
+const sel = $("motor");
+sel.innerHTML = '<option value="-1">Semua motor</option>' + M.map((m, i) => `<option value="${i}">${m}</option>`).join("");
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function render(){
+  const q = $("q").value.trim().toLowerCase();
+  const m = parseInt(sel.value, 10);
+  const rows = D.filter(r => {
+    const hit = !q || r[0].toLowerCase().includes(q) || r[1].toLowerCase().includes(q);
+    const ada = m < 0 || r[2][m] !== null;
+    return hit && ada;
+  });
+
+  if (m >= 0) {
+    $("thead").innerHTML = `<tr><th>Kode</th><th>Jasa</th><th class="r">Harga (${esc(M[m])})</th></tr>`;
+    $("tbody").innerHTML = rows.map((r, i) => `<tr data-i="${D.indexOf(r)}" data-m="${m}"><td class="code">${esc(r[0])}</td><td class="desc">${esc(r[1])}</td><td class="r price">${fmt(r[2][m])}</td></tr>`).join("");
+  } else {
+    $("thead").innerHTML = `<tr><th>Kode</th><th>Jasa</th>${M.map(x => `<th class="r">${esc(x)}</th>`).join("")}</tr>`;
+    $("tbody").innerHTML = rows.map(r => `<tr data-i="${D.indexOf(r)}" data-m="-1"><td class="code">${esc(r[0])}</td><td class="desc">${esc(r[1])}</td>${r[2].map(v => `<td class="r ${v === null ? "none" : "price"}">${fmt(v)}</td>`).join("")}</tr>`).join("");
+  }
+
+  $("info").textContent = rows.length
+    ? `${rows.length} jasa ditemukan · klik baris untuk menyalin kode & harga`
+    : "Tidak ada jasa yang cocok.";
+}
+
+$("tbody").addEventListener("click", e => {
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  const r = D[parseInt(tr.dataset.i, 10)];
+  const m = parseInt(tr.dataset.m, 10);
+  const text = m >= 0
+    ? `${r[0]} - ${r[1]} (${M[m]}): ${fmt(r[2][m])}`
+    : `${r[0]} - ${r[1]}`;
+  const t = $("toast");
+  const done = () => { t.textContent = "Disalin: " + text; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done); else done();
+});
+
+$("q").addEventListener("input", render);
+sel.addEventListener("change", render);
+render();
+</script>
+</body>
+</html>
